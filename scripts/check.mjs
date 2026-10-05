@@ -81,6 +81,34 @@ if (existsSync(PLUGINS)) {
   }
 }
 
+// --- DOM phrase maps --------------------------------------------------------
+// These translate plugins that hardcode their copy: the key is the source text
+// itself, so a key that drifts by one character silently stops matching.
+const DOM = join(ROOT, 'lib', 'locales', 'dom')
+let domPhrases = 0
+if (existsSync(DOM)) {
+  const seen = new Map()
+  for (const entry of readdirSync(DOM).sort()) {
+    if (!entry.endsWith('.json')) continue
+    let file
+    try { file = JSON.parse(readFileSync(join(DOM, entry), 'utf8')) } catch (error) {
+      fail(`lib/locales/dom/${entry}: ${error.message}`); continue
+    }
+    if (typeof file !== 'object' || file === null || Array.isArray(file)) {
+      fail(`lib/locales/dom/${entry}: expected a flat object of phrase -> translation`)
+      continue
+    }
+    for (const [source, target] of Object.entries(file)) {
+      if (source.trim() === '') fail(`lib/locales/dom/${entry}: an empty source phrase`)
+      if (typeof target !== 'string' || target.trim() === '') fail(`lib/locales/dom/${entry}: ${JSON.stringify(source)} has no translation`)
+      const previous = seen.get(source)
+      if (previous !== undefined) fail(`lib/locales/dom/${entry}: ${JSON.stringify(source)} is already translated in ${previous}`)
+      else seen.set(source, entry)
+      domPhrases++
+    }
+  }
+}
+
 // --- built bundle -----------------------------------------------------------
 const CLIENT = join(ROOT, 'lib', 'client.js')
 if (!existsSync(CLIENT)) fail('lib/client.js: missing — run `npm run build`')
@@ -102,4 +130,5 @@ console.log(`${pkg.name} v${pkg.version}: ok`)
 console.log(`  core namespaces:   ${namespaces.size}`)
 console.log(`  plugin namespaces: ${pluginNamespaces.size}`)
 console.log(`  keys:              ${keys} (${emptyValues} intentionally blank)`)
+console.log(`  DOM phrases:       ${domPhrases}`)
 console.log(`  bundle:            ${(readFileSync(CLIENT).length / 1024).toFixed(1)} KiB`)

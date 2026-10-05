@@ -1,7 +1,7 @@
 {
   "name": "dsh-korean-lang",
-  "version": "1.0.0",
-  "description": "Korean localization for DeepSeek Harness — adds 한국어 as a native language option with a complete ko dictionary for every core UI namespace.",
+  "version": "1.1.0",
+  "description": "Korean localization for DeepSeek Harness — adds 한국어 as a native language option, with a complete ko dictionary for every core UI namespace and for the third-party plugins that use the locale service.",
   "type": "module",
   "main": "lib/index.js",
   "exports": {
@@ -48,6 +48,9 @@
     "check": "node scripts/check.mjs",
     "smoke": "node scripts/smoke.mjs",
     "test": "node scripts/check.mjs && node scripts/smoke.mjs"
+  },
+  "devDependencies": {
+    "jsdom": "^29.1.1"
   },
   "repository": {
     "type": "git",

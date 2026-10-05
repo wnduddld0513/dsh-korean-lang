@@ -2,7 +2,7 @@
 
 **DeepSeek Harness(DSH) 웹 UI 한국어 언어팩 플러그인.**
 
-DSH 코어 UI의 모든 로케일 네임스페이스에 한국어 사전을 등록하고, **설정 → 일반 → 언어** 목록에 `한국어`를 추가합니다. 하네스를 수정하거나 포크를 유지할 필요 없이 플러그인 하나만 설치하면 됩니다.
+DSH 코어 UI와 서드파티 플러그인 UI에 한국어를 적용하고, **설정 → 일반 → 언어** 목록에 `한국어`를 추가합니다. 하네스를 수정하거나 포크를 유지할 필요 없이 플러그인 하나만 설치하면 됩니다.
 
 [English](#english) · MIT License
 
@@ -13,16 +13,19 @@ DSH 코어 UI의 모든 로케일 네임스페이스에 한국어 사전을 등�
 | | |
 |---|---|
 | 🌐 **코어 UI 전체 번역** | 61개 네임스페이스 / **2,487개 문자열** |
-| 🈳 **네이티브 언어 항목** | 설정 → 일반 → 언어에 `한국어`가 세 번째 항목으로 표시 |
-| 🪶 **가벼운 클라이언트 번들** | 4.3 KiB — 사전은 호스트가 HTTP로 제공하고 브라우저가 필요할 때 받아옵니다 |
+| 🧩 **설치된 플러그인 번역** | 로케일 서비스를 쓰는 플러그인 8종 / **2,069개 문자열** |
+| 🪟 **하드코딩 UI 번역** | 로케일 서비스를 쓰지 않는 플러그인을 위한 DOM 번역층 |
+| 🈳 **네이티브 언어 항목** | 설정 → 일반 → 언어에 `한국어`가 항목으로 표시 |
+| 🪶 **가벼운 클라이언트 번들** | 11.2 KiB — 사전은 호스트가 HTTP로 제공하고 브라우저가 필요할 때 받아옵니다 |
 | 🔁 **우아한 성능 저하** | 번역이 없는 네임스페이스는 영어로 폴백하며, 빈 키가 화면에 노출되지 않습니다 |
-| 🧩 **플러그인 확장** | 서드파티 플러그인 사전을 JSON 파일 하나로 추가 |
 
 ### 번역 범위
 
-`conversation`, `chat`, `workspace`, `settings` 계열, `sidebar` 계열, `trajectory`, `pluginManager`, `schedule`, `session-inspector`, `permission.access`, `plan`, `goal`, `job`, `subagent` 등 코어 네임스페이스 61개를 포함합니다. 전체 목록은 [`lib/locales/core.json`](lib/locales/core.json)에서 확인할 수 있습니다.
+**코어** — `conversation`, `chat`, `workspace`, `settings` 계열, `sidebar` 계열, `trajectory`, `pluginManager`, `schedule`, `session-inspector`, `permission.access`, `plan`, `goal`, `job`, `subagent` 등 61개 네임스페이스. 전체 목록은 [`lib/locales/core.json`](lib/locales/core.json).
 
-**서드파티 플러그인**(예: `dshmarket`, `@michengai/*`)은 자체 네임스페이스를 사용하므로 기본적으로 영어로 표시됩니다. [`lib/locales/plugins/`](lib/locales/plugins/README.md)에 사전 파일을 추가하면 함께 번역됩니다.
+**플러그인** — DSH 로케일 서비스(`ctx.locale.register`)를 사용하는 플러그인은 사전으로 번역합니다. 현재 포함된 네임스페이스는 [`lib/locales/plugins/`](lib/locales/plugins/README.md) 참고.
+
+**하드코딩 UI** — 문자열을 번들에 직접 박아 넣은 플러그인은 사전이 닿지 않습니다. 이 경우에만 DOM 번역층이 동작하며, 규칙은 아래와 같습니다.
 
 ---
 
@@ -37,8 +40,8 @@ dsh plugin --profile desktop add dsh-korean-lang
 # 이 저장소에서 직접 설치
 dsh plugin --profile desktop add github:wnduddld0513/dsh-korean-lang
 
-# 로컬 클론에서 설치
-dsh plugin --profile desktop add file:/path/to/dsh-korean-lang
+# 릴리스 타르볼로 설치
+dsh plugin --profile desktop add https://github.com/wnduddld0513/dsh-korean-lang/releases/latest/download/dsh-korean-lang-1.1.0.tgz
 ```
 
 설치 후 앱을 다시 실행하고 **설정 → 일반 → 언어 → 한국어**를 선택하세요.
@@ -60,23 +63,25 @@ dsh plugin --profile desktop add file:/path/to/dsh-korean-lang
 
 ## 동작 방식
 
-DSH는 클라이언트 플러그인이 언어를 추가할 수 있도록 공식 확장점을 제공합니다. 이 플러그인은 그 확장점만 사용합니다.
+DSH는 클라이언트 플러그인이 언어를 추가할 수 있도록 공식 확장점을 제공합니다. 이 플러그인은 그 확장점을 먼저 사용하고, 확장점이 닿지 않는 플러그인에만 DOM 층을 적용합니다.
 
 ```
 ┌─ 호스트 (Node) ─────────────────────────────┐
 │ lib/index.js                                │
-│  · webServer 라우트 2개 등록 (읽기 전용)     │
+│  · webServer 라우트 3개 등록 (읽기 전용)     │
 │    /api/dsh-korean-lang/dict/core           │
 │    /api/dsh-korean-lang/dict/plugins        │
+│    /api/dsh-korean-lang/dom                 │
 │  · ETag + 304 재검증                        │
 └─────────────────────────────────────────────┘
                      │  JSON
 ┌─ 브라우저 ──────────────────────────────────┐
-│ lib/client.js (4.3 KiB)                     │
+│ lib/client.js (11.2 KiB)                    │
 │  1. ctx.locale.addLanguage({ id: 'ko',      │
 │       label: '한국어', fallback: 'en' })     │
 │  2. 네임스페이스마다                        │
 │     ctx.locale.register(ns, 'ko', dict)     │
+│  3. (한국어가 활성일 때만) DOM 번역층        │
 └─────────────────────────────────────────────┘
 ```
 
@@ -84,9 +89,21 @@ DSH는 클라이언트 플러그인이 언어를 추가할 수 있도록 공식 
 - `fallback: 'en'`이므로 등록되지 않은 키는 영어로 해석됩니다. 키가 그대로 노출되는 일은 없습니다.
 - `<html lang>`은 로케일 서비스가 활성 언어에 맞춰 자동으로 갱신합니다.
 
+### DOM 번역층이 건드리지 않는 것
+
+문자열을 번들에 하드코딩한 플러그인만 대상으로 하며, 안전을 위해 다음을 **절대 수정하지 않습니다**.
+
+- 대화 내용 — `[role="log"]`, `[class*="markdown"]`, `[class*="message"]`, `[class*="transcript"]` 하위 전체
+- 코드 — `code`, `pre`, `kbd`, `samp`
+- 입력·편집 — `input`, `textarea`, `select`, `[contenteditable]`
+
+또한 **텍스트 전체가 문구 사전의 키와 정확히 일치할 때만** 치환합니다. 부분 일치나 유사 일치는 하지 않으므로, 문장 중간의 단어가 바뀌는 일이 없습니다. 나중에 렌더링된 요소도 `MutationObserver`가 따라갑니다.
+
 ---
 
-## 서드파티 플러그인 번역 추가
+## 플러그인 번역 추가
+
+### 로케일 서비스를 쓰는 플러그인
 
 `lib/locales/plugins/`에 JSON 파일 하나를 넣으면 됩니다.
 
@@ -100,13 +117,26 @@ DSH는 클라이언트 플러그인이 언어를 추가할 수 있도록 공식 
 
 파일 형식과 규칙은 [`lib/locales/plugins/README.md`](lib/locales/plugins/README.md)를 참고하세요.
 
+### 하드코딩된 플러그인
+
+`lib/locales/dom/`에 원문 → 한국어 평면 객체를 넣습니다.
+
+```json
+{
+  "Close settings panel": "설정 패널 닫기"
+}
+```
+
+키는 플러그인이 렌더링하는 **영어 원문 그대로**여야 합니다(공백·말줄임표 포함). 한 글자라도 다르면 매칭되지 않습니다.
+
 ---
 
 ## 개발
 
 ```bash
+npm install     # jsdom (DOM 층 테스트용 개발 의존성)
 npm run build   # src/client.js → lib/client.js 번들 생성
-npm test        # 매니페스트·사전·번들 구조 검증
+npm test        # 매니페스트·사전·DOM 사전·번들 구조 검증 + 스모크 테스트
 ```
 
 | 경로 | 역할 |
@@ -115,24 +145,30 @@ npm test        # 매니페스트·사전·번들 구조 검증
 | `lib/client.js` | `npm run build`가 생성하는 번들 (커밋됨) |
 | `lib/index.js` | 호스트 절반 — 사전 제공 라우트 |
 | `lib/locales/core.json` | 코어 네임스페이스 한국어 사전 |
-| `lib/locales/plugins/*.json` | 서드파티 플러그인 사전 |
-| `scripts/extract-locales.mjs` | 하네스 소스에서 사전을 추출하는 유지보수 도구 |
+| `lib/locales/plugins/*.json` | 로케일 서비스를 쓰는 플러그인 사전 |
+| `lib/locales/dom/*.json` | 하드코딩된 플러그인 UI 문구 사전 |
+| `scripts/extract-locales.mjs` | 하네스 소스에서 코어 사전을 추출하는 유지보수 도구 |
+| `scripts/extract-plugin-locales.mjs` | 설치된 플러그인 번들에서 사전을 추출하는 유지보수 도구 |
 
-`scripts/extract-locales.mjs`는 deepseek-harness 체크아웃에서 `ctx.locale.register(ns, { zh, en, ko })` 호출을 TypeScript AST로 분석해 한국어 사전을 뽑아냅니다. 하네스가 새 네임스페이스를 추가했을 때 사전을 갱신하는 데 사용합니다.
+`scripts/extract-locales.mjs`는 deepseek-harness 체크아웃에서 `ctx.locale.register(ns, { zh, en, ko })` 호출을 TypeScript AST로 분석해 한국어 사전을 뽑아냅니다. `scripts/extract-plugin-locales.mjs`는 설치된 플러그인의 미니파이된 브라우저 번들에서 같은 호출을 찾아 `en`/`zh` 사전을 복원합니다. 둘 다 하네스나 플러그인이 업데이트됐을 때 사전을 갱신하는 데 사용합니다.
 
 ---
 
 ## English
 
-A Korean language pack for the DeepSeek Harness web UI. It uses only the
-documented client extension point: it publishes `한국어` through
+A Korean language pack for the DeepSeek Harness web UI. It uses the documented
+client extension point first: it publishes `한국어` through
 `ctx.locale.addLanguage` and registers one Korean dictionary per namespace with
 `ctx.locale.register`. No harness patching, no fork.
 
-- **61 core namespaces / 2,487 strings**, covering conversation, chat, workspace,
-  settings, sidebars, trajectory, plugin manager, scheduling, permissions, and more.
-- Dictionaries are served by the host half over two read-only, ETag-validated
-  routes, so the client bundle stays at **4.3 KiB**.
+- **61 core namespaces / 2,487 strings**, plus **8 third-party plugin namespaces /
+  2,069 strings** for the plugins installed alongside it.
+- Plugins that hardcode their UI text instead of using the locale service are
+  covered by a **DOM translation layer** that matches whole text values against a
+  fixed phrase map. It never touches conversation content, code blocks, code
+  editors, or form controls.
+- Dictionaries are served by the host half over three read-only, ETag-validated
+  routes, so the client bundle stays at **11.2 KiB**.
 - Untranslated namespaces fall back to English through the declared fallback
   chain rather than surfacing raw keys.
 
