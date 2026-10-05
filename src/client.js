@@ -1,0 +1,113 @@
+/**
+ * dsh-korean-lang — browser half.
+ *
+ * Wrapped into `lib/client.js` by `scripts/build-client.mjs`; the wrapper adds
+ * the module-loader registration and the exports, so this file stays plain
+ * JavaScript that can be read and reviewed on its own.
+ *
+ * What it does, in order:
+ *
+ *   1. Publishes 한국어 through the locale service, so
+ *      Settings → General → Language lists it even when the dictionaries are
+ *      still in flight (or unavailable).
+ *   2. Fetches the dictionaries from the host half and registers one Korean
+ *      dictionary per namespace.
+ *
+ * A namespace this plugin cannot translate is not registered at all: the
+ * locale runtime then resolves its keys through the declared fallback chain to
+ * English, which is what a reader expects from a partially covered UI.
+ */
+
+/** The locale id this plugin owns; it becomes the stored `locale.preference`. */
+const LOCALE_ID = 'ko'
+
+/** The name shown in the language selector, written in Korean. */
+const LOCALE_LABEL = '한국어'
+
+/** Route prefix registered by the host half. */
+const API = '/api/dsh-korean-lang'
+
+/** Reporter for conditions that degrade the plugin without breaking the page. */
+function warn(message, error) {
+  console.warn(`[dsh-korean-lang] ${message}`, error ?? '')
+}
+
+/** GET one dictionary endpoint as JSON. */
+async function fetchJson(path) {
+  const response = await fetch(path, { headers: { accept: 'application/json' }, credentials: 'same-origin' })
+  if (!response.ok) throw new Error(`HTTP ${response.status}`)
+  return response.json()
+}
+
+/**
+ * Publish the Korean language and register its dictionaries.
+ * @param ctx - the client context; `locale` is injected before apply runs.
+ */
+function apply(ctx) {
+  const disposers = []
+  let disposed = false
+
+  const addDisposer = (dispose) => {
+    if (typeof dispose === 'function') disposers.push(dispose)
+  }
+
+  // Step 1 — the language itself. Skipped when another definition already owns
+  // the id, which would throw on the duplicate.
+  try {
+    const locales = ctx.locale.getLocale().locales
+    if (!locales.some(locale => locale.id === LOCALE_ID) && typeof ctx.locale.addLanguage === 'function') {
+      addDisposer(ctx.locale.addLanguage({ id: LOCALE_ID, label: LOCALE_LABEL, fallback: 'en' }))
+    }
+  } catch (error) {
+    warn('the language could not be registered', error)
+  }
+
+  /**
+   * Register one namespace's Korean dictionary.
+   * A namespace that already carries a Korean dictionary keeps its first owner;
+   * the duplicate registration throws and is dropped.
+   */
+  const register = (namespace, dictionary) => {
+    if (!dictionary || typeof dictionary !== 'object') return
+    try {
+      addDisposer(ctx.locale.register(namespace, LOCALE_ID, dictionary))
+    } catch (error) {
+      warn(`namespace "${namespace}" was not registered`, error)
+    }
+  }
+
+  /** Fetch one endpoint and register every namespace it carries. */
+  const load = async (path, pick, label) => {
+    try {
+      const payload = await fetchJson(path)
+      if (disposed) return
+      const dictionaries = pick(payload)
+      if (!dictionaries || typeof dictionaries !== 'object') return
+      for (const [namespace, dictionary] of Object.entries(dictionaries)) register(namespace, dictionary)
+    } catch (error) {
+      warn(`${label} are unavailable, those screens fall back to English`, error)
+    }
+  }
+
+  ctx.effect(() => () => {
+    disposed = true
+    for (const dispose of disposers.splice(0)) {
+      try {
+        dispose()
+      } catch {
+        // One stale registration must not strand the rest of the teardown.
+      }
+    }
+  }, 'dsh-korean-lang: language and dictionaries')
+
+  // Step 2 — the translations. Sequenced so the core UI is translated before
+  // the optional third-party namespaces are even requested.
+  void (async () => {
+    await load(`${API}/dict/core`, payload => payload.core, 'core dictionaries')
+    if (disposed) return
+    await load(`${API}/dict/plugins`, payload => payload.plugins, 'plugin dictionaries')
+  })()
+}
+
+/** Required service: the locale registry this plugin extends. */
+const inject = ['locale']

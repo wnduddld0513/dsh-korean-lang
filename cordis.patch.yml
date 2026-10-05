@@ -1,0 +1,9 @@
+# dsh-korean-lang: the plugin row in the profile loader tree.
+#
+# The host half only publishes the dictionaries over HTTP (lib/index.js); the
+# language switch and every registration live in the browser (lib/client.js).
+# The row exists so the client-bundle scanner sees the package and hands its
+# browser half to the page.
+- insert:
+    - id: dsh-korean-lang
+      name: dsh-korean-lang

@@ -1,0 +1,60 @@
+{
+  "name": "dsh-korean-lang",
+  "version": "1.0.0",
+  "description": "Korean localization for DeepSeek Harness — adds 한국어 as a native language option with a complete ko dictionary for every core UI namespace.",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json",
+    "./locales/*.json": "./lib/locales/*.json"
+  },
+  "files": [
+    "lib",
+    "cordis.patch.yml",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-locale"
+      ]
+    }
+  },
+  "keywords": [
+    "deepseek-harness",
+    "dsh",
+    "dsh-plugin",
+    "i18n",
+    "locale",
+    "korean",
+    "한국어"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=20",
+    "dsh": "^0.2.0-rc.1 || ^0.2.0 || ^0.2.1"
+  },
+  "scripts": {
+    "build": "node scripts/build-client.mjs",
+    "check": "node scripts/check.mjs",
+    "smoke": "node scripts/smoke.mjs",
+    "test": "node scripts/check.mjs && node scripts/smoke.mjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wnduddld0513/dsh-korean-lang.git"
+  },
+  "homepage": "https://github.com/wnduddld0513/dsh-korean-lang#readme",
+  "bugs": {
+    "url": "https://github.com/wnduddld0513/dsh-korean-lang/issues"
+  }
+}
